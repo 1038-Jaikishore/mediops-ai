@@ -67,3 +67,7 @@ dist-ssr/
 
 # Docker
 .docker/
+
+# Logs
+logs/
+*.log
