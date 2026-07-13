@@ -5,6 +5,8 @@ def test_health_check(client: TestClient):
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "ok"
+    assert data["status"] == "healthy"
+    assert data["postgres"] == "healthy"
+    assert data["redis"] == "healthy"
     assert "project_name" in data
     assert "environment" in data

@@ -1,7 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.db.session import get_db
+from app.core.redis import get_redis
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
+from redis import asyncio as aioredis
 import logging
 
 # Set up structured logging
@@ -26,13 +31,49 @@ app.add_middleware(
 
 
 @app.get("/health", status_code=200)
-async def health_check():
+async def health_check(
+    db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis)
+):
     """
-    Health check endpoint to verify that the service is running.
+    Health check endpoint to verify backend, database, and cache connectivity.
     """
     logger.info("Health check endpoint accessed")
+    
+    postgres_status = "unhealthy"
+    redis_status = "unhealthy"
+    
+    # 1. Test PostgreSQL connectivity
+    try:
+        await db.execute(text("SELECT 1"))
+        postgres_status = "healthy"
+    except Exception as e:
+        logger.error(f"PostgreSQL health check failed: {e}")
+        
+    # 2. Test Redis connectivity
+    try:
+        await redis.ping()
+        redis_status = "healthy"
+    except Exception as e:
+        logger.error(f"Redis health check failed: {e}")
+
+    # Determine global health status
+    if postgres_status != "healthy" or redis_status != "healthy":
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "status": "unhealthy",
+                "postgres": postgres_status,
+                "redis": redis_status,
+                "project_name": settings.PROJECT_NAME,
+                "environment": settings.ENVIRONMENT,
+            }
+        )
+
     return {
-        "status": "ok",
+        "status": "healthy",
+        "postgres": postgres_status,
+        "redis": redis_status,
         "project_name": settings.PROJECT_NAME,
         "environment": settings.ENVIRONMENT,
     }
