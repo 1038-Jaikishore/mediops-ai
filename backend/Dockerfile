@@ -25,9 +25,15 @@ ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Copy source code
+# Copy source code and migrations
 COPY app/ app/
+COPY alembic/ alembic/
+COPY alembic.ini .
+COPY start.sh .
+
+# Ensure start script is executable
+RUN chmod +x start.sh
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["./start.sh"]

@@ -13,11 +13,17 @@ class JSONFormatter(logging.Formatter):
     """
     def format(self, record: logging.LogRecord) -> str:
         # Standard attributes
+        message_val = record.getMessage()
+        try:
+            message_val = json.loads(message_val)
+        except json.JSONDecodeError:
+            pass
+
         log_record = {
             "timestamp": datetime.fromtimestamp(record.created).isoformat(),
             "level": record.levelname,
             "logger": record.name,
-            "message": record.getMessage(),
+            "message": message_val,
         }
 
         # Include traceback details if an exception occurred
