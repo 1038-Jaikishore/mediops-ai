@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from redis import asyncio as aioredis
 import logging
+from app.api.endpoints.simulator import router as simulator_router
 
 # Set up structured logging
 setup_logging()
@@ -27,6 +28,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.include_router(
+    simulator_router,
+    prefix=f"{settings.API_V1_STR}/simulator",
+    tags=["simulator"],
 )
 
 
